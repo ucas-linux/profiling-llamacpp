@@ -87,15 +87,38 @@ vector<string> extract_function_names(
 
     // address + type(T/W) + full symbol
     //regex nm_regex(R"(^\S+\s+([Tt])\s+(\S+))");
-    regex nm_regex(R"(^\S+\s+[T]\s+(\S+))");
+    regex nm_regex(R"(^\S+\s+[TW]\s+(\S+))");
     smatch match;
 
     stringstream ss(nm_output);
     string line;
 
+    static const string kExcludedSymbol =
+        "_ZN9__gnu_cxx14__alloc_traitsISaISt6vectorIhSaIhEEES3_E15_S_always_equalEv";
+    static const string kExcludedSymbol1 =
+	    "_ZN9__gnu_cxx14__alloc_traitsISaISt6vectorIhSaIhEEES3_E27_S_propagate_on_copy_assignEv";
+    static const string kExcludedSymbol2 =
+	    "_ZNKSt13__atomic_baseIbE4loadESt12memory_order";
+    static const string kExcludedSymbol3 =
+	    "_ZNSt13__atomic_baseIbE5storeEbSt12memory_order";
+    static const string kExcludedSymbol4 =
+	    "_ZSt15__alloc_on_copyISaISt6vectorIhSaIhEEEEvRT_RKS4_";
+    static const string kExcludedSymbol5 =
+	    "_ZSt8_DestroyIN9__gnu_cxx17__normal_iteratorIPSt6vectorIhSaIhEES2_IS4_SaIS4_EEEES4_EvT_S9_RSaIT0_E";
+    static const string kExcludedSymbol6 =
+	    "_ZStneRKSaISt6vectorIhSaIhEEES4_";
+    
     while (getline(ss, line)) {
         if (regex_search(line, match, nm_regex)) {
             const string& symbol = match.str(1);
+	    if (symbol == kExcludedSymbol||symbol == kExcludedSymbol1
+		|| symbol == kExcludedSymbol2
+		|| symbol == kExcludedSymbol3
+		|| symbol == kExcludedSymbol4
+		|| symbol == kExcludedSymbol5
+		|| symbol == kExcludedSymbol6) {
+		    continue;
+	    }
             if (is_excluded(symbol, exclude_patterns)) {
                 result.push_back(symbol);
             }
