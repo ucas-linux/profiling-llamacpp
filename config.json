@@ -2,6 +2,7 @@
   "excluded_functions": [
       ".*readline.*",
       ".*set_display.*",
-      "^_?ZN.*"
+      "^_?ZN.*",
+      "^_?ZSt.*"
   ]
 }
