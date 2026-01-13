@@ -1,3 +1,6 @@
 [submodule "extern/llama.cpp"]
 	path = extern/llama.cpp
 	url = https://github.com/ggml-org/llama.cpp
+[submodule "extern/pytorch"]
+	path = extern/pytorch
+	url = https://github.com/pytorch/pytorch.git
