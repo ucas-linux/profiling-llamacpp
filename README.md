@@ -20,3 +20,12 @@ sudo apt-get install elfutils libdw-dev
 ./build-binary.sh
 
 
+## profile pytorch
+
+cd extern/pytorch
+
+git submodule update --init --recursive
+
+
+
+
