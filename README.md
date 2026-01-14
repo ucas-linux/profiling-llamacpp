@@ -26,6 +26,14 @@ cd extern/pytorch
 
 git submodule update --init --recursive
 
+python3 -m venv ~/venvs/torch-src
+
+source ~/venvs/torch-src/bin/activate
+
+python -m pip install -U pip setuptools wheel
+
+python -m pip install --no-build-isolation -v -e .
+
 
 
 
