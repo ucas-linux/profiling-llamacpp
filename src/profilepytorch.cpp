@@ -41,6 +41,22 @@ struct Stats {
   uint64_t count;
 };
 
+
+static void NO_INSTRUMENT print_top10_spread(void);
+struct TLSMap {
+  std::unordered_map<void*, Stats> m;
+
+  ~TLSMap() {
+    const char msg[] = "[trace] TLSMap destructor running\n";
+    write(2, msg, sizeof(msg) - 1);
+    print_top10_spread();
+    beginrecord = 0;
+
+  }
+};
+
+thread_local TLSMap thread_stats1;
+
 static std::mutex g_mu;
 
 // Global container to hold merged stats across all threads
@@ -51,7 +67,7 @@ thread_local std::unordered_map<void*, Stats> thread_stats;
 
 // Function to update stats in a thread-local storage
 void update_stats_in_thread(void* fn, uint64_t dur_ns) {
-    auto& stats = thread_stats[fn];
+    auto& stats = thread_stats1.m[fn];
     if (stats.count == 0) {
         stats.min_ns = dur_ns;
         stats.max_ns = dur_ns;
@@ -64,7 +80,7 @@ void update_stats_in_thread(void* fn, uint64_t dur_ns) {
 
 // Merge all thread-local stats into the global stats
 void merge_thread_stats() {
-    for (auto& kv : thread_stats) {
+    for (auto& kv : thread_stats1.m) {
         auto& fn = kv.first;
         auto& thread_stat = kv.second;
 
@@ -172,10 +188,11 @@ static void NO_INSTRUMENT print_top10_spread() {
         uint64_t spread_ns;
         uint64_t count;
     };
+    beginrecord = 0;
     merge_thread_stats();
     std::vector<Row> rows;
     rows.reserve(g_stats.size());
-    beginrecord = 0;
+
     for (auto& kv : g_stats) {
         const Stats& s = kv.second;
         uint64_t spread = (s.max_ns >= s.min_ns) ? (s.max_ns - s.min_ns) : 0;
@@ -205,7 +222,7 @@ static std::atomic<bool> g_registered{false};
 static void NO_INSTRUMENT ensure_registered() {
   bool expected = false;
   if (g_registered.compare_exchange_strong(expected, true)) {
-    std::atexit(print_top10_spread);
+	  //std::atexit(print_top10_spread);
   }
 }
 extern "C" {
@@ -225,16 +242,7 @@ __attribute__((constructor)) void init_after_call_init() {
 	call_init_finished = true;
 }
 
-struct ExitAudit {
-  ~ExitAudit() noexcept {
-    // Avoid throwing from destructors.
-	  beginrecord = 0;
-	  ::fflush(stderr);
-  }
-};
 
-// Global object: constructed at load, destroyed at normal exit.
-static ExitAudit g_exit_audit;
 static thread_local int g_in_hook = 0;
 
 // Function pointer to the real write()
@@ -271,7 +279,7 @@ extern "C" ssize_t write(int fd, const void* buf, size_t count) {
   // --- your audit logic (keep it async-signal-safe-ish) ---
   const char msg[] = "[audit] write() called\n";
   safe_write(STDERR_FILENO, msg, sizeof(msg) - 1);
-  beginrecord = 0;
+
   // Call the real libc write
   ssize_t rc = real_write(fd, buf, count);
 
